@@ -228,3 +228,31 @@ select:disabled {
   color: var(--text);
   opacity: 0.7;
 }
+
+.invalid-card {
+  text-align: center;
+  padding: 60px 36px;
+
+  .invalid-icon {
+    font-size: 48px;
+  }
+
+  h1 {
+    margin: 16px 0 12px;
+  }
+
+  p {
+    color: var(--text);
+    font-size: 15px;
+  }
+}
+
+.meta-row {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--text);
+  opacity: 0.6;
+}
