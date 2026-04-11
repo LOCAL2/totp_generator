@@ -22,10 +22,14 @@ export default function ViewerPage() {
   }
 
   const { secret, digits, period } = config
+
   const [token, setToken] = useState('')
   const [timeLeft, setTimeLeft] = useState(0)
+  const [animKey, setAnimKey] = useState(0)
+  const [phase, setPhase] = useState<'fill' | 'shrink'>('shrink')
   const [copied, setCopied] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const animStartElapsed = useRef(0)
 
   const generate = useCallback(() => {
     try {
@@ -35,6 +39,20 @@ export default function ViewerPage() {
         period,
       })
       setToken(otp.generate())
+      animStartElapsed.current = (Date.now() / 1000) % period
+      // ถ้า elapsed น้อยมาก (token เพิ่ง reset) ให้ทำ fill ก่อน
+      if (animStartElapsed.current < 1) {
+        setPhase('fill')
+        setAnimKey(k => k + 1)
+        setTimeout(() => {
+          animStartElapsed.current = (Date.now() / 1000) % period
+          setPhase('shrink')
+          setAnimKey(k => k + 1)
+        }, 400)
+      } else {
+        setPhase('shrink')
+        setAnimKey(k => k + 1)
+      }
     } catch {
       setToken('ERROR')
     }
@@ -63,7 +81,10 @@ export default function ViewerPage() {
     })
   }
 
-  const progress = timeLeft / period
+  const barStyle = {
+    '--period': `${period}s`,
+    animationDelay: `-${animStartElapsed.current}s`,
+  } as React.CSSProperties
 
   return (
     <div className="totp-wrapper">
@@ -72,20 +93,16 @@ export default function ViewerPage() {
 
         <div className="token-section">
           <div className="token-display" onClick={handleCopy} title="Click to copy">
-            <span className="token-value">{token}</span>
-            <span className="copy-hint">{copied ? '✓ Copied' : 'Copy'}</span>
-          </div>
+              <span className="token-label">{copied ? '✓ Copied to clipboard' : 'Tap to copy'}</span>
+              <span className="token-value">{token}</span>
+            </div>
           <div className="timer-bar-wrap">
-            <div className="timer-bar" style={{ width: `${progress * 100}%`, '--progress': progress } as React.CSSProperties} />
+            <div key={animKey} className={`timer-bar ${phase === 'fill' ? 'timer-bar--fill' : 'timer-bar--anim'}`} style={barStyle} />
           </div>
           <p className="timer-label">Refreshes in {timeLeft}s</p>
         </div>
 
-        <div className="meta-row">
-          <span>{digits} digits</span>
-          <span>·</span>
-          <span>every {period}s</span>
-        </div>
+
       </div>
     </div>
   )
