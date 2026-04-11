@@ -6,56 +6,54 @@ declare const OTPAuth: {
   TOTP: new (opts: { secret: unknown; digits: number; period: number }) => { generate: () => string }
 }
 
+function InvalidPage() {
+  return (
+    <div className="page">
+      <div className="card" style={{ textAlign: 'center', maxWidth: 360 }}>
+        <div className="invalid-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </div>
+        <h2 className="invalid-title">Invalid Link</h2>
+        <p className="invalid-desc">This link is invalid or has expired.<br />Please request a new OTP link.</p>
+      </div>
+    </div>
+  )
+}
+
 export default function ViewerPage() {
   const config = decode(window.location.hash.slice(1))
-
-  if (!config) {
-    return (
-      <div className="totp-wrapper">
-        <div className="totp-card invalid-card">
-          <span className="invalid-icon">🔗</span>
-          <h1>Invalid Link</h1>
-          <p>This link is invalid or has expired. Please request a new OTP link.</p>
-        </div>
-      </div>
-    )
-  }
+  if (!config) return <InvalidPage />
 
   const { secret, digits, period } = config
-
   const [token, setToken] = useState('')
   const [timeLeft, setTimeLeft] = useState(0)
   const [animKey, setAnimKey] = useState(0)
   const [phase, setPhase] = useState<'fill' | 'shrink'>('shrink')
   const [copied, setCopied] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const animStartElapsed = useRef(0)
+  const animElapsed = useRef(0)
 
   const generate = useCallback(() => {
     try {
-      const otp = new OTPAuth.TOTP({
-        secret: OTPAuth.Secret.fromBase32(secret),
-        digits,
-        period,
-      })
+      const otp = new OTPAuth.TOTP({ secret: OTPAuth.Secret.fromBase32(secret), digits, period })
       setToken(otp.generate())
-      animStartElapsed.current = (Date.now() / 1000) % period
-      // ถ้า elapsed น้อยมาก (token เพิ่ง reset) ให้ทำ fill ก่อน
-      if (animStartElapsed.current < 1) {
+      animElapsed.current = (Date.now() / 1000) % period
+      if (animElapsed.current < 1) {
         setPhase('fill')
         setAnimKey(k => k + 1)
         setTimeout(() => {
-          animStartElapsed.current = (Date.now() / 1000) % period
+          animElapsed.current = (Date.now() / 1000) % period
           setPhase('shrink')
           setAnimKey(k => k + 1)
-        }, 400)
+        }, 350)
       } else {
         setPhase('shrink')
         setAnimKey(k => k + 1)
       }
-    } catch {
-      setToken('ERROR')
-    }
+    } catch { setToken('ERROR') }
   }, [secret, digits, period])
 
   useEffect(() => {
@@ -74,7 +72,7 @@ export default function ViewerPage() {
   }, [period])
 
   const handleCopy = () => {
-    if (!token) return
+    if (!token || token === 'ERROR') return
     navigator.clipboard.writeText(token).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
@@ -83,26 +81,35 @@ export default function ViewerPage() {
 
   const barStyle = {
     '--period': `${period}s`,
-    animationDelay: `-${animStartElapsed.current}s`,
+    animationDelay: phase === 'shrink' ? `-${animElapsed.current}s` : '0s',
   } as React.CSSProperties
 
   return (
-    <div className="totp-wrapper">
-      <div className="totp-card">
-        <h1>TOTP Token</h1>
-
-        <div className="token-section">
-          <div className="token-display" onClick={handleCopy} title="Click to copy">
-              <span className="token-label">{copied ? '✓ Copied to clipboard' : 'Tap to copy'}</span>
-              <span className="token-value">{token}</span>
-            </div>
-          <div className="timer-bar-wrap">
-            <div key={animKey} className={`timer-bar ${phase === 'fill' ? 'timer-bar--fill' : 'timer-bar--anim'}`} style={barStyle} />
-          </div>
-          <p className="timer-label">Refreshes in {timeLeft}s</p>
+    <div className="page">
+      <div className="card">
+        <div className="card-header" style={{ textAlign: 'center' }}>
+          <p className="card-eyebrow">One-Time Password</p>
+          <h1 className="card-title">Authentication Code</h1>
         </div>
 
+        <div className="token-section">
+          <div className="token-card" onClick={handleCopy} role="button" tabIndex={0}
+            onKeyDown={e => e.key === 'Enter' && handleCopy()}>
+            <p className={`token-hint ${copied ? 'token-hint--copied' : ''}`}>
+              {copied ? 'Copied to clipboard' : 'Click to copy'}
+            </p>
+            <p className="token-digits">{token}</p>
+          </div>
 
+          <div className="progress-wrap">
+            <div
+              key={animKey}
+              className={`progress-bar ${phase === 'fill' ? 'progress-bar--fill' : 'progress-bar--shrink'}`}
+              style={barStyle}
+            />
+          </div>
+          <p className="progress-label">Refreshes in {timeLeft}s</p>
+        </div>
       </div>
     </div>
   )

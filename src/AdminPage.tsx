@@ -7,9 +7,8 @@ export default function AdminPage() {
   const [period, setPeriod] = useState(30)
   const [copied, setCopied] = useState(false)
 
-  const shareUrl = secret.trim()
-    ? buildViewerUrl(secret.trim().toUpperCase().replace(/\s/g, ''), digits, period)
-    : ''
+  const clean = secret.trim().toUpperCase().replace(/\s/g, '')
+  const shareUrl = clean ? buildViewerUrl(clean, digits, period) : ''
 
   const handleCopy = () => {
     if (!shareUrl) return
@@ -20,16 +19,20 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="totp-wrapper">
-      <div className="totp-card">
-        <h1>Create OTP Link</h1>
+    <div className="page">
+      <div className="card">
+        <div className="card-header">
+          <p className="card-eyebrow">Configuration</p>
+          <h1 className="card-title">Generate OTP Link</h1>
+        </div>
 
         <div className="field">
-          <label htmlFor="secret">Secret Key</label>
+          <label className="field-label" htmlFor="secret">Secret Key</label>
           <input
             id="secret"
+            className="field-input"
             type="text"
-            placeholder="e.g. JBSWY3DPEHPK3PXP"
+            placeholder="Base32 encoded secret"
             value={secret}
             onChange={e => setSecret(e.target.value)}
             autoComplete="off"
@@ -37,19 +40,20 @@ export default function AdminPage() {
           />
         </div>
 
-        <div className="row">
+        <div className="field-row">
           <div className="field">
-            <label htmlFor="digits">Number of Digits</label>
-            <select id="digits" value={digits} onChange={e => setDigits(Number(e.target.value))}>
-              <option value={6}>6</option>
-              <option value={7}>7</option>
-              <option value={8}>8</option>
+            <label className="field-label" htmlFor="digits">Digits</label>
+            <select id="digits" className="field-select" value={digits} onChange={e => setDigits(Number(e.target.value))}>
+              <option value={6}>6 digits</option>
+              <option value={7}>7 digits</option>
+              <option value={8}>8 digits</option>
             </select>
           </div>
           <div className="field">
-            <label htmlFor="period">Token Period (seconds)</label>
+            <label className="field-label" htmlFor="period">Period (s)</label>
             <input
               id="period"
+              className="field-input"
               type="number"
               min={10}
               max={300}
@@ -61,14 +65,14 @@ export default function AdminPage() {
 
         {shareUrl && (
           <div className="share-section">
-            <label>Share Link</label>
-            <div className="share-row">
+            <p className="share-label">Shareable Link</p>
+            <div className="share-box">
               <span className="share-url">{shareUrl}</span>
-              <button className="copy-btn" onClick={handleCopy}>
-                {copied ? '✓ Copied' : 'Copy URL'}
+              <button className="share-copy-btn" onClick={handleCopy}>
+                {copied ? 'Copied' : 'Copy'}
               </button>
             </div>
-            <p className="share-hint">User ที่ได้รับ link นี้จะ generate OTP ได้ แต่เปลี่ยนค่าไม่ได้</p>
+            <p className="share-hint">Recipients can generate OTP codes but cannot modify the configuration.</p>
           </div>
         )}
       </div>
