@@ -6,22 +6,31 @@ declare const OTPAuth: {
   TOTP: new (opts: { secret: unknown; digits: number; period: number }) => { generate: () => string }
 }
 
-function parseHash(): { secret: string; digits: number; period: number } | null {
-  const hash = window.location.hash.slice(1)
-  if (!hash) return null
-  const p = new URLSearchParams(hash)
-  const s = p.get('s')
-  if (!s) return null
-  return {
-    secret: s,
-    digits: Number(p.get('d') ?? 6),
-    period: Number(p.get('p') ?? 30),
+function encode(secret: string, digits: number, period: number): string {
+  return btoa(`${secret}|${digits}|${period}`)
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+function decode(hash: string): { secret: string; digits: number; period: number } | null {
+  try {
+    const b64 = hash.replace(/-/g, '+').replace(/_/g, '/')
+    const raw = atob(b64)
+    const [secret, d, p] = raw.split('|')
+    if (!secret) return null
+    return { secret, digits: Number(d ?? 6), period: Number(p ?? 30) }
+  } catch {
+    return null
   }
 }
 
+function parseHash(): { secret: string; digits: number; period: number } | null {
+  const hash = window.location.hash.slice(1)
+  if (!hash) return null
+  return decode(hash)
+}
+
 function buildShareUrl(secret: string, digits: number, period: number): string {
-  const params = new URLSearchParams({ s: secret, d: String(digits), p: String(period) })
-  return `${window.location.origin}${window.location.pathname}#${params.toString()}`
+  return `${window.location.origin}${window.location.pathname}#${encode(secret, digits, period)}`
 }
 
 function App() {
