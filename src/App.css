@@ -180,11 +180,6 @@
   overflow: hidden;
 }
 
-@keyframes bar-fill {
-  from { transform: scaleX(0); }
-  to   { transform: scaleX(1); }
-}
-
 @keyframes bar-shrink {
   from { transform: scaleX(1); }
   to   { transform: scaleX(0); }
@@ -195,10 +190,6 @@
   border-radius: 99px;
   transform-origin: left center;
   background: linear-gradient(90deg, var(--accent), var(--accent-2));
-}
-
-.progress-bar--fill {
-  animation: bar-fill 0.35s cubic-bezier(0.22,1,0.36,1) forwards;
 }
 
 .progress-bar--shrink {
@@ -319,4 +310,48 @@
   .card { padding: 28px 24px; }
   .token-digits { font-size: 34px; }
   .field-row { flex-direction: column; }
+}
+
+/* ── Admin Gate ── */
+.gate-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--accent-bg);
+  border: 1px solid rgba(139,92,246,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+
+  svg {
+    width: 22px;
+    height: 22px;
+    stroke: var(--accent-2);
+  }
+}
+
+.field-input--error {
+  border-color: rgba(239,68,68,0.5) !important;
+  box-shadow: 0 0 0 3px rgba(239,68,68,0.1) !important;
+}
+
+.gate-btn {
+  width: 100%;
+  margin-top: 20px;
+  padding: 12px;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  letter-spacing: 0.02em;
+
+  &:hover:not(:disabled) { opacity: 0.88; }
+  &:active:not(:disabled) { transform: scale(0.98); }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
 }
