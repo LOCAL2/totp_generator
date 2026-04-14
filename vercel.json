@@ -1,3 +1,7 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    { "source": "/api/shorten", "destination": "/api/shorten" },
+    { "source": "/r/:id", "destination": "/api/r/:id" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
 }
