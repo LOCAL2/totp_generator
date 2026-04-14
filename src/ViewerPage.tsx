@@ -23,28 +23,35 @@ function InvalidPage() {
   )
 }
 
-export default function ViewerPage() {
-  const config = decode(window.location.hash.slice(1))
-  if (!config) return <InvalidPage />
+type Config = { secret: string; digits: number; period: number }
 
+function TOTPViewer({ config }: { config: Config }) {
   const { secret, digits, period } = config
   const [token, setToken] = useState('')
   const [timeLeft, setTimeLeft] = useState(0)
   const [animKey, setAnimKey] = useState(0)
+  const [phase, setPhase] = useState<'fill' | 'shrink'>('shrink')
   const [copied, setCopied] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const animElapsed = useRef(0)
-  const lastCounter = useRef(-1)
 
   const generate = useCallback(() => {
-    const counter = Math.floor(Date.now() / 1000 / period)
-    if (counter === lastCounter.current) return
-    lastCounter.current = counter
     try {
       const otp = new OTPAuth.TOTP({ secret: OTPAuth.Secret.fromBase32(secret), digits, period })
       setToken(otp.generate())
       animElapsed.current = (Date.now() / 1000) % period
-      setAnimKey(k => k + 1)
+      if (animElapsed.current < 1) {
+        setPhase('fill')
+        setAnimKey(k => k + 1)
+        setTimeout(() => {
+          animElapsed.current = (Date.now() / 1000) % period
+          setPhase('shrink')
+          setAnimKey(k => k + 1)
+        }, 350)
+      } else {
+        setPhase('shrink')
+        setAnimKey(k => k + 1)
+      }
     } catch { setToken('ERROR') }
   }, [secret, digits, period])
 
@@ -73,7 +80,7 @@ export default function ViewerPage() {
 
   const barStyle = {
     '--period': `${period}s`,
-    animationDelay: `-${animElapsed.current}s`,
+    animationDelay: phase === 'shrink' ? `-${animElapsed.current}s` : '0s',
   } as React.CSSProperties
 
   return (
@@ -83,7 +90,6 @@ export default function ViewerPage() {
           <p className="card-eyebrow">One-Time Password</p>
           <h1 className="card-title">Authentication Code</h1>
         </div>
-
         <div className="token-section">
           <div className="token-card" onClick={handleCopy} role="button" tabIndex={0}
             onKeyDown={e => e.key === 'Enter' && handleCopy()}>
@@ -92,17 +98,53 @@ export default function ViewerPage() {
             </p>
             <p className="token-digits">{token}</p>
           </div>
-
           <div className="progress-wrap">
-            <div
-              key={animKey}
-              className="progress-bar progress-bar--shrink"
-              style={barStyle}
-            />
+            <div key={animKey}
+              className={`progress-bar ${phase === 'fill' ? 'progress-bar--fill' : 'progress-bar--shrink'}`}
+              style={barStyle} />
           </div>
           <p className="progress-label">Refreshes in {timeLeft}s</p>
         </div>
       </div>
     </div>
   )
+}
+
+export default function ViewerPage() {
+  const searchId = new URLSearchParams(window.location.search).get('id')
+  const hashConfig = decode(window.location.hash.slice(1))
+
+  const [config, setConfig] = useState<Config | null>(hashConfig)
+  const [notFound, setNotFound] = useState(false)
+
+  useEffect(() => {
+    if (!searchId) return
+    fetch(`/api/resolve?id=${searchId}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.hash) {
+          const parsed = decode(data.hash)
+          parsed ? setConfig(parsed) : setNotFound(true)
+        } else {
+          setNotFound(true)
+        }
+      })
+      .catch(() => setNotFound(true))
+  }, [searchId])
+
+  if (notFound) return <InvalidPage />
+
+  if (!config && searchId) {
+    return (
+      <div className="page">
+        <div className="card" style={{ textAlign: 'center' }}>
+          <p style={{ color: 'var(--text)', fontSize: 14 }}>Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!config) return <InvalidPage />
+
+  return <TOTPViewer config={config} />
 }

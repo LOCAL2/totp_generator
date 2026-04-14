@@ -4,9 +4,11 @@ export const config = { runtime: 'edge' }
 
 export default async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url)
-  const id = url.pathname.split('/').pop()
+  const id = url.searchParams.get('id')
 
-  if (!id) return new Response('Not Found', { status: 404 })
+  const headers = { 'Content-Type': 'application/json' }
+
+  if (!id) return new Response(JSON.stringify({ error: 'Missing id' }), { status: 400, headers })
 
   const db = createClient({
     url: process.env.TURSO_URL!,
@@ -19,11 +21,8 @@ export default async function handler(req: Request): Promise<Response> {
   })
 
   if (result.rows.length === 0) {
-    return new Response('Not Found', { status: 404 })
+    return new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers })
   }
 
-  const hash = result.rows[0].hash as string
-
-  // redirect to /?id=xxx — React will fetch the hash via /api/resolve?id=xxx
-  return Response.redirect(`${url.origin}/?id=${id}`, 302)
+  return new Response(JSON.stringify({ hash: result.rows[0].hash }), { status: 200, headers })
 }
